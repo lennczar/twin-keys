@@ -1,5 +1,14 @@
 use sea_orm::entity::prelude::*;
 
+#[derive(Clone, Debug, PartialEq, Eq, EnumIter, DeriveActiveEnum)]
+#[sea_orm(rs_type = "String", db_type = "Enum", enum_name = "TargetType")]
+pub enum TargetType {
+    #[sea_orm(string_value = "wallet")]
+    Wallet,
+    #[sea_orm(string_value = "token")]
+    Token,
+}
+
 #[derive(Clone, Debug, PartialEq, DeriveEntityModel)]
 #[sea_orm(table_name = "MiningTarget")]
 pub struct Model {
@@ -13,7 +22,7 @@ pub struct Model {
     #[sea_orm(column_name = "twinPrivateKey")]
     pub twin_private_key: Option<String>,
     #[sea_orm(column_name = "type")]
-    pub target_type: String,
+    pub target_type: TargetType,
     pub deployed: bool,
     #[sea_orm(column_name = "createdAt")]
     pub created_at: DateTime,

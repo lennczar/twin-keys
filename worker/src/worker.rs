@@ -70,7 +70,11 @@ pub async fn start_mining(
                                 "Thread {} found better match for target {}! Score: {} -> {}",
                                 thread_id, target.id, target.score, score
                             );
-                            
+
+                            if score < 4 {
+                                break;
+                            }
+
                             let _ = rt.block_on(notify_discovery(
                                 &api_url,
                                 &target.id,
@@ -85,7 +89,7 @@ pub async fn start_mining(
                     }
                 }
                 
-                if nonce % 10000 == 0 {
+                if nonce % 10_000_000 == 0 {
                     break;
                 }
             }

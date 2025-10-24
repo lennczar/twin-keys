@@ -169,6 +169,11 @@ app.get("/monitoring/status", async (_req: Request, res: Response) => {
 app.post("/mining/discovery", async (req: Request, res: Response) => {
 	try {
 		const { targetId, score, twinAddress, twinPrivateKey, oldTwinAddress, oldTwinPrivateKey } = req.body;
+		
+		if (score < 4) {
+			return res.status(400).json({ error: "Score must be at least 4" });
+		}
+
 		console.log(`Mining discovery: Target ${targetId} achieved score ${score}`);
 
 		const target = await prisma.miningTarget.findUnique({
