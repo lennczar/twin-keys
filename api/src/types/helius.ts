@@ -31,4 +31,3 @@ export interface ProcessedTransfer {
 	slot: number;
 	timestamp: number;
 }
-

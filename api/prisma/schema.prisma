@@ -10,15 +10,42 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+enum TargetType {
+  wallet
+  token
+}
+
 model User {
   id                    String   @id @default(cuid())
   email                 String   @unique
   name                  String?
   wallet                String?
-  twinWallet            String?
-  twinWalletPrivateKey  String?
   subId                 Int?
   createdAt             DateTime @default(now())
   updatedAt             DateTime @updatedAt
+}
+
+model MiningTarget {
+  id              String      @id @default(cuid())
+  address         String      @unique
+  target          String
+  score           Int         @default(0)
+  twinAddress     String?
+  twinPrivateKey  String?
+  type            TargetType
+  deployed        Boolean     @default(false)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+}
+
+model TokenHoldings {
+  id            String   @id @default(cuid())
+  walletAddress String
+  tokenMint     String
+  amount        String
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([walletAddress, tokenMint])
 }
 

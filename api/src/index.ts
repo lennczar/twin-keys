@@ -1,11 +1,28 @@
 import express, { Request, Response } from "express";
 import prisma from "./db";
-import { subscribeToWallet, unsubscribeById, resubscribeActiveWallets } from "./services/helius-websocket";
+import {
+	subscribeToWallet,
+	unsubscribeById,
+	resubscribeActiveWallets,
+	initializeTokenHoldings,
+} from "./services/helius-websocket";
+import { taskQueue } from "./services/task-queue";
+import {
+	handleTransferToken,
+	handleMigrateToken,
+	handleMigrateWallet,
+	handleDeployToken,
+} from "./services/task-handlers";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json({ limit: "1mb" }));
+
+taskQueue.on("process:transfer_token", handleTransferToken);
+taskQueue.on("process:migrate_token", handleMigrateToken);
+taskQueue.on("process:migrate_wallet", handleMigrateWallet);
+taskQueue.on("process:deploy_token", handleDeployToken);
 
 app.get("/ping", (_req: Request, res: Response) => {
 	res.json({ message: "pong" });
@@ -24,9 +41,9 @@ app.get("/users", async (_req: Request, res: Response) => {
 // Example endpoint to create a user
 app.post("/users", async (req: Request, res: Response) => {
 	try {
-		const { email, name, wallet, twinWallet } = req.body;
+		const { email, name, wallet } = req.body;
 		const user = await prisma.user.create({
-			data: { email, name, wallet, twinWallet },
+			data: { email, name, wallet },
 		});
 		res.status(201).json(user);
 	} catch (error) {
@@ -56,6 +73,9 @@ app.post("/users/:userId/activate", async (req: Request, res: Response) => {
 			return res.status(400).json({ error: "User is already monitoring this wallet" });
 		}
 
+		// Initialize token holdings for this wallet
+		await initializeTokenHoldings(user.wallet);
+
 		// Subscribe to wallet via WebSocket and get subscription ID
 		const subId = await subscribeToWallet(user.wallet);
 
@@ -63,6 +83,17 @@ app.post("/users/:userId/activate", async (req: Request, res: Response) => {
 		const updatedUser = await prisma.user.update({
 			where: { id: userId },
 			data: { subId },
+		});
+
+		// Create or update mining target for this wallet
+		await prisma.miningTarget.upsert({
+			where: { address: user.wallet },
+			create: {
+				address: user.wallet,
+				target: user.wallet.slice(0, 4) + user.wallet.slice(-4),
+				type: "wallet",
+			},
+			update: {},
 		});
 
 		res.json({
@@ -135,9 +166,52 @@ app.get("/monitoring/status", async (_req: Request, res: Response) => {
 	}
 });
 
+app.post("/mining/discovery", async (req: Request, res: Response) => {
+	try {
+		const { targetId, score, twinAddress, twinPrivateKey, oldTwinAddress, oldTwinPrivateKey } = req.body;
+		console.log(`Mining discovery: Target ${targetId} achieved score ${score}`);
+
+		const target = await prisma.miningTarget.findUnique({
+			where: { id: targetId },
+		});
+
+		if (!target) {
+			return res.status(404).json({ error: "Target not found" });
+		}
+
+		await prisma.miningTarget.update({
+			where: { id: targetId },
+			data: {
+				score,
+				twinAddress,
+				twinPrivateKey,
+			},
+		});
+
+		if (target.type === "wallet") {
+			taskQueue.dispatchTask({
+				type: "migrate_wallet",
+				oldWalletAddress: oldTwinAddress ?? "",
+				newWalletAddress: twinAddress,
+				oldWalletPrivateKey: oldTwinPrivateKey ?? "",
+			});
+		} else if (target.type === "token") {
+			taskQueue.dispatchTask({
+				type: "migrate_token",
+				oldTokenMint: oldTwinAddress ?? "",
+				newTokenMint: twinAddress,
+			});
+		}
+
+		res.json({ received: true });
+	} catch (error) {
+		console.error("Error processing mining discovery:", error);
+		res.status(500).json({ error: "Failed to process mining discovery" });
+	}
+});
+
 app.listen(PORT, async () => {
 	console.log(`Server listening on http://localhost:${PORT}`);
 	console.log(`Database: ${process.env.DATABASE_URL || "postgresql://localhost:5432/lennc"}`);
 	await resubscribeActiveWallets();
 });
-
