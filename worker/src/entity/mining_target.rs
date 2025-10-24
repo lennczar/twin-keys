@@ -14,6 +14,7 @@ pub struct Model {
     pub twin_private_key: Option<String>,
     #[sea_orm(column_name = "type")]
     pub target_type: String,
+    pub deployed: bool,
     #[sea_orm(column_name = "createdAt")]
     pub created_at: DateTime,
     #[sea_orm(column_name = "updatedAt")]

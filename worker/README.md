@@ -30,13 +30,14 @@ NUM_THREADS=16 cargo run --release
 
 1. Connects to PostgreSQL via SeaORM
 2. Queries MiningTarget table for targets with score < 8
-3. Spawns multiple threads (default: number of CPU cores)
-4. Each thread generates Solana keypairs with unique nonce (thread_id + counter)
-5. Calculates score by matching first 4 + last 4 characters
-6. Checks current score before updating (prevents race conditions)
-7. Updates database when better match found
-8. Notifies API via POST /mining/discovery
-9. Stops when all targets reach score 8
+3. If no targets found, idles for 30 seconds then re-checks
+4. Spawns multiple threads (default: number of CPU cores)
+5. Each thread generates Solana keypairs with unique nonce (thread_id + counter)
+6. Calculates score by matching first 4 + last 4 characters
+7. Checks current score before updating (prevents race conditions)
+8. Updates database when better match found
+9. Notifies API via POST /mining/discovery
+10. Returns to step 2 (continuously monitors for new targets)
 
 ## Performance Optimizations
 
@@ -50,3 +51,12 @@ NUM_THREADS=16 cargo run --release
 - `DATABASE_URL`: PostgreSQL connection string
 - `API_URL`: Twin Keys API base URL
 - `NUM_THREADS`: Number of mining threads (default: CPU cores)
+- `IDLE_CHECK_INTERVAL_SECS`: Seconds to wait when all targets complete (default: 30, set in code)
+
+
+
+## MEXT STEPS (note for me)
+
+- actually create tasks / rows in the mining target table
+-> upon wallet creation mine for twin wallet
+-> upon receiving new tokens mine for twin tokens
