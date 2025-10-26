@@ -29,7 +29,7 @@ NUM_THREADS=16 cargo run --release
 ## How It Works
 
 1. Connects to PostgreSQL via SeaORM
-2. Queries MiningTarget table for targets with score < 8
+2. Queries MiningTarget table for targets with score < MAX_SCORE
 3. If no targets found, idles for 30 seconds then re-checks
 4. Spawns multiple threads (default: number of CPU cores)
 5. Each thread generates Solana keypairs with unique nonce (thread_id + counter)

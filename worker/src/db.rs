@@ -1,10 +1,11 @@
 use sea_orm::*;
+use crate::miner::MAX_SCORE;
 
 pub async fn get_active_targets(db: &DatabaseConnection) -> Result<Vec<crate::entity::mining_target::Model>, DbErr> {
     use crate::entity::mining_target;
     
     mining_target::Entity::find()
-        .filter(mining_target::Column::Score.lt(8))
+        .filter(mining_target::Column::Score.lt(MAX_SCORE as i32))
         .all(db)
         .await
 }
@@ -31,17 +32,6 @@ pub async fn update_target(
         .await?;
     
     Ok(result.rows_affected > 0)
-}
-
-pub async fn get_current_score(db: &DatabaseConnection, id: &str) -> Result<i32, DbErr> {
-    use crate::entity::mining_target;
-    
-    let target = mining_target::Entity::find()
-        .filter(mining_target::Column::Id.eq(id))
-        .one(db)
-        .await?;
-    
-    Ok(target.map(|t| t.score).unwrap_or(0))
 }
 
 pub async fn get_target_by_id(db: &DatabaseConnection, id: &str) -> Result<crate::entity::mining_target::Model, DbErr> {

@@ -28,8 +28,9 @@ async fn main() -> anyhow::Result<()> {
     println!("API URL: {}", api_url);
     
     let mut opt = ConnectOptions::new(database_url);
-    opt.max_connections(num_threads as u32 + 5)
+    opt.max_connections((num_threads as u32 * 3) + 10)
         .connect_timeout(Duration::from_secs(10))
+        .acquire_timeout(Duration::from_secs(10))
         .sqlx_logging(false);
     
     let db = Database::connect(opt).await?;
