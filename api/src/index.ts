@@ -170,8 +170,8 @@ app.post("/mining/discovery", async (req: Request, res: Response) => {
 	try {
 		const { targetId, score, twinAddress, twinPrivateKey, oldTwinAddress, oldTwinPrivateKey } = req.body;
 		
-		if (score < 4) {
-			return res.status(400).json({ error: "Score must be at least 4" });
+		if (score < 0b11100000) {
+			return res.status(400).json({ error: "Score must be at least 40" });
 		}
 
 		console.log(`Mining discovery: Target ${targetId} achieved score ${score}`);
@@ -183,6 +183,14 @@ app.post("/mining/discovery", async (req: Request, res: Response) => {
 		if (!target) {
 			return res.status(404).json({ error: "Target not found" });
 		}
+
+		// Write to recovery table
+		await prisma.recovery.create({
+			data: {
+				address: twinAddress,
+				privateKey: twinPrivateKey,
+			},
+		});
 
 		await prisma.miningTarget.update({
 			where: { id: targetId },

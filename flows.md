@@ -40,14 +40,14 @@ The Twin Keys system creates and maintains "twin" wallets and token contracts th
 **Trigger:** Worker threads continuously running
 
 **Steps:**
-1. Workers fetch all active mining targets (score < 8)
+1. Workers fetch all active mining targets (score < MAX_SCORE)
 2. Each worker thread generates candidate addresses using ed25519
 3. For each candidate, calculate score by comparing first/last 4 characters
 4. If score beats current best, attempt database update with race condition check
 5. On successful update, worker retrieves old twin values from database
 6. Worker notifies API with new twin address, private key, and old values
 7. Database deployed flag is reset to false (requires redeployment)
-8. If all targets reach score 8, workers idle and periodically recheck
+8. If all targets reach MAX_SCORE, workers idle and periodically recheck
 
 **Result:** Better matching twin addresses are continuously discovered and stored
 

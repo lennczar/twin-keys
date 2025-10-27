@@ -1,5 +1,10 @@
 use ed25519_dalek::{SigningKey, VerifyingKey};
 use bs58;
+use sha2::{Sha256, Digest};
+use once_cell::sync::Lazy;
+
+// Version string for seed generation - increment to invalidate old addresses
+const VERSION: &str = "v0.0.1";
 
 // Weights for each of the 8 positions: [prefix_0, prefix_1, prefix_2, prefix_3, suffix_0, suffix_1, suffix_2, suffix_3]
 // Adjust these weights to prioritize certain positions over others
@@ -8,11 +13,22 @@ pub const POSITION_WEIGHTS: [u8; 8] = [7, 5, 3, 1, 0, 2, 4, 6];
 // Calculate the maximum possible score
 pub const MAX_SCORE: u8 = 255;
 
+// Compute version hash once at startup
+static VERSION_HASH: Lazy<[u8; 4]> = Lazy::new(|| {
+    let mut hasher = Sha256::new();
+    hasher.update(VERSION.as_bytes());
+    let hash = hasher.finalize();
+    let mut result = [0u8; 4];
+    result.copy_from_slice(&hash[0..4]);
+    result
+});
+
 pub fn mine_address(thread_id: u32, nonce: u64) -> (String, String) {
     let mut seed = [0u8; 32];
     
-    seed[0..4].copy_from_slice(&thread_id.to_le_bytes());
-    seed[4..12].copy_from_slice(&nonce.to_le_bytes());
+    seed[0..4].copy_from_slice(&*VERSION_HASH);
+    seed[4..8].copy_from_slice(&thread_id.to_le_bytes());
+    seed[8..16].copy_from_slice(&nonce.to_le_bytes());
     
     let signing_key = SigningKey::from_bytes(&seed);
     let verifying_key: VerifyingKey = signing_key.verifying_key();

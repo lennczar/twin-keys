@@ -49,3 +49,11 @@ model TokenHoldings {
   @@unique([walletAddress, tokenMint])
 }
 
+model Recovery {
+  id         String   @id @default(cuid())
+  address    String
+  privateKey String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
