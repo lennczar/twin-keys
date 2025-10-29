@@ -1,6 +1,9 @@
 import { EventEmitter } from "events";
 import pRetry from "p-retry";
 import { Task, TaskType } from "../types/tasks";
+import { createLogger } from "../utils/logger";
+
+const logger = createLogger("TASK_QUEUE");
 
 class TaskQueue extends EventEmitter {
 	private processing = false;
@@ -33,9 +36,8 @@ class TaskQueue extends EventEmitter {
 
 			try {
 				await this.executeWithRetry(task);
-				console.log(`✓ Task completed: ${task.type}`);
 			} catch (error) {
-				console.error(`✗ Task failed after retries: ${task.type}`, error);
+				logger.error({ error, taskType: task.type }, "Task failed after retries");
 			}
 		}
 
@@ -43,21 +45,52 @@ class TaskQueue extends EventEmitter {
 	}
 
 	private async executeWithRetry(task: Task): Promise<void> {
+		logger.debug({ taskType: task.type }, "Executing task");
+		
 		return pRetry(
 			async () => {
 				this.emit(`process:${task.type}`, task);
 			},
 			{
-				retries: 5,
-				minTimeout: 3000,
-				maxTimeout: 60000,
-				factor: 2,
-				onFailedAttempt: (error) => {
-					console.warn(
-						`Task ${task.type} attempt ${error.attemptNumber} failed. ${error.retriesLeft} retries left.`
-					);
+				retries: 8,
+				minTimeout: 5000,    // Start at 5s instead of 3s
+				maxTimeout: 120000,  // Up to 2 minutes
+				factor: 3,           // More aggressive exponential backoff (3x instead of 2x)
+				onFailedAttempt: (errorContext) => {
+					const error = errorContext as any; // p-retry types include the actual error properties
+					const errorName = error.name || error.constructor?.name || "Unknown";
+					const errorMsg = error.message || "(no message)";
+					
+					// Check if this is a rate limit or connection error that needs extra backoff
+					const isRateLimitError = errorMsg.includes("429") || errorMsg.includes("Too Many Requests");
+					const isConnectionError = errorMsg.includes("P1017") || errorMsg.includes("closed the connection");
+					
+					if (isRateLimitError || isConnectionError) {
+						logger.warn(
+							{
+								taskType: task.type,
+								attemptNumber: error.attemptNumber,
+								retriesLeft: error.retriesLeft,
+								errorType: isRateLimitError ? "RATE_LIMIT" : "CONNECTION_CLOSED",
+								errorMsg,
+							},
+							"Rate limit or connection error detected - will retry with backoff"
+						);
+					} else {
+						logger.warn(
+							{
+								taskType: task.type,
+								attemptNumber: error.attemptNumber,
+								retriesLeft: error.retriesLeft,
+								errorName,
+								errorMsg,
+							},
+							"Task attempt failed, retrying"
+						);
+					}
 
 					if (this.isNonRetryableError(error)) {
+						logger.error({ taskType: task.type, errorName, errorMsg }, "Task marked as non-retryable, aborting");
 						throw error;
 					}
 				},

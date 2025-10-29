@@ -119,11 +119,11 @@ pub async fn start_mining(
                         if updated {
                             let formatted = format_match(&candidate_addr, score);
                             println!(
-                                "thread[{}] target[{}]: {} (score: {})",
-                                thread_id, target.id, formatted, score
+                                "[thread:{}] [target:{}]: {} (score: {}) {}",
+                                thread_id, target.id, formatted, score, if score >= 0b11110000 {">"} else {""}
                             );
 
-                            if score >= 0b11100000 {
+                            if score >= 0b11110000 {
                                 let _ = rt.block_on(notify_discovery(
                                     &api_url,
                                     &target.id,

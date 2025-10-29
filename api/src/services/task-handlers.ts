@@ -1,18 +1,37 @@
-import { PrismaClient } from "@prisma/client";
 import { TransferTokenTask, MigrateTokenTask, MigrateWalletTask, DeployTokenTask } from "../types/tasks";
-import { sendTokenTransfer, getCentralWalletAddress } from "./solana";
+import { sendTokenTransfer, getCentralWalletAddress, getTokenMetadata, deployTwinToken, sendSOL, getSOLBalance, getTokenBalance, TWIN_WALLET_SOL_FUNDING } from "./solana";
 import { taskQueue } from "./task-queue";
+import { createLogger } from "../utils/logger";
+import prisma from "../db";
 
-const prisma = new PrismaClient();
+const logger = createLogger("TASK_HANDLER");
+
+// Keep a small amount for rent exemption
+const RENT_RESERVE = 1_000_000; // 0.001 SOL
 
 export async function handleTransferToken(task: TransferTokenTask) {
 	const { tokenMint, amount, sourceWalletAddress, targetWalletAddress, sourceWalletPrivateKey } = task;
 
-	const signature = await sendTokenTransfer(sourceWalletPrivateKey, targetWalletAddress, tokenMint, amount);
+	logger.debug({ 
+		tokenMint, 
+		amount, 
+		sourceWalletAddress, 
+		targetWalletAddress 
+	}, "Attempting token transfer");
 
-	console.log(
-		`Token transfer completed: ${sourceWalletAddress} -> ${targetWalletAddress} ${amount} of ${tokenMint} - ${signature}`
-	);
+	try {
+		await sendTokenTransfer(sourceWalletPrivateKey, targetWalletAddress, tokenMint, amount);
+		logger.debug({ tokenMint, amount, targetWalletAddress }, "Token transfer completed");
+	} catch (error) {
+		logger.error({ 
+			error, 
+			tokenMint, 
+			amount, 
+			sourceWalletAddress, 
+			targetWalletAddress 
+		}, "Token transfer failed");
+		throw error;
+	}
 }
 
 export async function handleMigrateToken(task: MigrateTokenTask) {
@@ -23,28 +42,43 @@ export async function handleMigrateToken(task: MigrateTokenTask) {
     });
 
     if (!twinTokenTarget) {
-        console.error(`Twin token target not found for new token twin: ${newTokenMint}`);
+        logger.warn({ newTokenMint }, "Twin token target not found for new token twin");
         return;
     }
 
     const twinTokenPrivateKey = twinTokenTarget.twinPrivateKey;
     
+    // Deploy the new token first
     taskQueue.dispatchTask({
         type: "deploy_token",
-        tokenMint: oldTokenMint,
+        tokenMint: twinTokenTarget.address,
         twinTokenMint: newTokenMint,
         twinTokenPrivateKey: twinTokenPrivateKey!,
     });
 
-	const realTokenTarget = await prisma.miningTarget.findFirst({
-		where: { twinAddress: newTokenMint },
-	});
-	if (!realTokenTarget) {
-		console.error(`Real token mint not found for new token twin: ${newTokenMint}`);
+	// Wait for deployment to complete by checking the deployed flag
+	// This ensures the token is fully deployed before attempting transfers
+	logger.debug({ newTokenMint }, "Waiting for token deployment to complete");
+	let deploymentComplete = false;
+	let attempts = 0;
+	while (!deploymentComplete && attempts < 60) { // Max 2 minutes
+		await new Promise(resolve => setTimeout(resolve, 2000)); // Check every 2 seconds
+		const target = await prisma.miningTarget.findFirst({
+			where: { address: twinTokenTarget.address },
+		});
+		deploymentComplete = target?.deployed || false;
+		attempts++;
+	}
+	
+	if (!deploymentComplete) {
+		logger.error({ newTokenMint }, "Token deployment did not complete in time");
 		return;
 	}
+	
+	logger.debug({ newTokenMint }, "Token deployment confirmed, proceeding with transfers");
 
-	const realTokenMint = realTokenTarget.address;
+	// Use the twinTokenTarget we already found at the beginning
+	const realTokenMint = twinTokenTarget.address;
 
 	const holdingsWithRealToken = await prisma.tokenHoldings.findMany({
 		where: { tokenMint: realTokenMint },
@@ -58,30 +92,49 @@ export async function handleMigrateToken(task: MigrateTokenTask) {
 		});
 
 		if (!walletTarget?.twinAddress || !walletTarget?.twinPrivateKey) {
-			console.warn(`Skipping wallet ${holding.walletAddress} - no twin wallet found`);
+			logger.warn({ walletAddress: holding.walletAddress }, "Skipping wallet - no twin wallet found");
 			continue;
 		}
 
-		taskQueue.dispatchTask({
-			type: "transfer_token",
-			tokenMint: oldTokenMint,
-			amount: Number(holding.amount),
-			sourceWalletAddress: walletTarget.twinAddress,
-			targetWalletAddress: centralWalletAddress,
-			sourceWalletPrivateKey: walletTarget.twinPrivateKey,
-		});
+		// Fetch the actual balance of old tokens from the twin wallet
+		const actualBalance = await getTokenBalance(walletTarget.twinAddress, oldTokenMint);
+		const expectedAmount = Number(holding.amount);
 
+		// Log a warning if the actual balance differs from what we expected
+		if (actualBalance !== expectedAmount) {
+			logger.warn({ 
+				walletAddress: walletTarget.twinAddress,
+				oldTokenMint,
+				expectedAmount,
+				actualBalance,
+				difference: actualBalance - expectedAmount
+			}, "Token balance mismatch - actual balance differs from TokenHoldings");
+		}
+
+		// Send ALL available old tokens to the central wallet (if any)
+		if (actualBalance > 0) {
+			taskQueue.dispatchTask({
+				type: "transfer_token",
+				tokenMint: oldTokenMint,
+				amount: actualBalance,
+				sourceWalletAddress: walletTarget.twinAddress,
+				targetWalletAddress: centralWalletAddress,
+				sourceWalletPrivateKey: walletTarget.twinPrivateKey,
+			});
+		}
+
+		// Send new twin tokens in the amount given by TokenHoldings
 		taskQueue.dispatchTask({
 			type: "transfer_token",
 			tokenMint: newTokenMint,
-			amount: Number(holding.amount),
+			amount: expectedAmount,
 			sourceWalletAddress: centralWalletAddress,
 			targetWalletAddress: walletTarget.twinAddress,
 			sourceWalletPrivateKey: process.env.CENTRAL_WALLET_PRIVATE_KEY!,
 		});
 	}
 
-	console.log(`Migrating token from ${oldTokenMint} to ${newTokenMint} for ${holdingsWithRealToken.length} wallets`);
+	logger.info({ oldTokenMint, newTokenMint, walletCount: holdingsWithRealToken.length }, "Token migration initiated");
 }
 
 export async function handleMigrateWallet(task: MigrateWalletTask) {
@@ -91,6 +144,7 @@ export async function handleMigrateWallet(task: MigrateWalletTask) {
 		where: { walletAddress: oldWalletAddress },
 	});
 
+	// Transfer all tokens
 	for (const holding of holdings) {
 		taskQueue.dispatchTask({
 			type: "transfer_token",
@@ -102,9 +156,28 @@ export async function handleMigrateWallet(task: MigrateWalletTask) {
 		});
 	}
 
-	console.log(
-		`Migrating wallet from ${oldWalletAddress} to ${newWalletAddress} - transferring ${holdings.length} tokens`
-	);
+	// Transfer SOL balance from old to new twin wallet
+	if (oldWalletPrivateKey) {
+		try {
+			const oldBalance = await getSOLBalance(oldWalletAddress);
+			const transferAmount = oldBalance - RENT_RESERVE;
+			
+			if (transferAmount > 0) {
+				await sendSOL(newWalletAddress, transferAmount, oldWalletPrivateKey);
+				logger.info({ 
+					oldWalletAddress, 
+					newWalletAddress, 
+					lamports: transferAmount 
+				}, "Transferred SOL from old to new twin wallet");
+			} else {
+				logger.warn({ oldWalletAddress, balance: oldBalance }, "Old wallet has insufficient SOL to transfer");
+			}
+		} catch (error) {
+			logger.error({ error, oldWalletAddress, newWalletAddress }, "Failed to transfer SOL between wallets");
+		}
+	}
+
+	logger.info({ oldWalletAddress, newWalletAddress, tokenCount: holdings.length }, "Wallet migration initiated");
 }
 
 export async function handleDeployToken(task: DeployTokenTask) {
@@ -115,30 +188,31 @@ export async function handleDeployToken(task: DeployTokenTask) {
 	});
 
 	if (!target) {
-		console.error(`Mining target not found for token: ${tokenMint}`);
+		logger.warn({ tokenMint }, "Mining target not found for token");
 		return;
 	}
 
 	if (target.deployed) {
-		console.log(`Token ${tokenMint} already deployed, skipping deployment`);
+		logger.debug({ tokenMint }, "Token already deployed, skipping");
 		return;
 	}
 
-	console.log(`Deploying twin token contract for ${tokenMint}`);
+	logger.debug({ tokenMint, twinTokenMint }, "Deploying twin token contract");
 
 	try {
-		// TODO 1: fetch all metadata of the real (non twin) token contract. Name, symbol, decimals, etc.
-		// TODO 2: deploy a twin token contract with the exact same metadata on the twinTokenMint with the twinTokenPrivateKey
-		// TODO 3: allocate all tokens of this contract to the central wallet
+		// Step 1: Fetch metadata from the real token
+		const metadata = await getTokenMetadata(tokenMint);
 
+		// Step 2: Deploy twin token with same metadata and supply
+		await deployTwinToken(twinTokenMint, twinTokenPrivateKey, metadata, metadata.totalSupply);
+
+		// Step 3: Mark as deployed in database
 		await prisma.miningTarget.update({
 			where: { address: tokenMint },
 			data: { deployed: true },
 		});
-
-		console.log(`✅ Successfully deployed twin token for ${tokenMint}`);
 	} catch (error) {
-		console.error(`❌ Failed to deploy twin token for ${tokenMint}:`, error);
+		logger.error({ error, tokenMint, twinTokenMint }, "Failed to deploy twin token");
 		throw error;
 	}
 }

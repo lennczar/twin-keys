@@ -3,6 +3,9 @@ import { PublicKey } from "@solana/web3.js";
 import prisma from "../db";
 import { taskQueue } from "./task-queue";
 import { getCentralWalletAddress } from "./solana";
+import { createLogger } from "../utils/logger";
+
+const logger = createLogger("HELIUS");
 
 if (!process.env.HELIUS_API_KEY) {
 	throw new Error("HELIUS_API_KEY is required");
@@ -47,15 +50,11 @@ export async function subscribeToWallet(walletAddress: string): Promise<number> 
 				});
 
 				if (delta !== 0) {
-					console.log(
-						JSON.stringify({
-							wallet: walletAddress,
-							token: postBalance.mint,
-							postAmount,
-							preAmount,
-							delta,
-						})
-					);
+					logger.debug({
+						wallet: walletAddress,
+						token: postBalance.mint,
+						delta,
+					}, "Token balance changed");
 
 					const target = await prisma.miningTarget.findUnique({
 						where: { address: walletAddress },
@@ -112,17 +111,17 @@ export async function subscribeToWallet(walletAddress: string): Promise<number> 
 				}
 			}
 		} catch (error) {
-			console.error("Error:", error);
+			logger.error({ error, walletAddress }, "Error processing wallet transaction");
 		}
 	});
 
-	console.log(`✅ Subscribed to ${walletAddress} (ID: ${subId})`);
+	logger.info({ walletAddress, subId }, "Subscribed to wallet");
 	return subId;
 }
 
 export async function unsubscribeById(subscriptionId: number): Promise<void> {
 	await helius.connection.removeOnLogsListener(subscriptionId);
-	console.log(`🔌 Unsubscribed (ID: ${subscriptionId})`);
+	logger.info({ subscriptionId }, "Unsubscribed");
 }
 
 export async function initializeTokenHoldings(walletAddress: string): Promise<void> {
@@ -166,9 +165,9 @@ export async function initializeTokenHoldings(walletAddress: string): Promise<vo
 			}
 		}
 
-		console.log(`✅ Initialized token holdings for ${walletAddress}`);
+		logger.info({ walletAddress, tokenCount: tokenAccounts.value.length }, "Initialized token holdings");
 	} catch (error) {
-		console.error(`❌ Failed to initialize token holdings for ${walletAddress}:`, error);
+		logger.error({ error, walletAddress }, "Failed to initialize token holdings");
 	}
 }
 
@@ -188,12 +187,12 @@ export async function resubscribeActiveWallets() {
 					data: { subId: newSubId },
 				});
 			} catch (error) {
-				console.error(`❌ Failed to resubscribe user ${user.id}:`, error);
+				logger.error({ error, userId: user.id }, "Failed to resubscribe user");
 			}
 		}
 
-		console.log(`✅ Resubscription complete`);
+		logger.info({ userCount: activeUsers.length }, "Resubscription complete");
 	} catch (error) {
-		console.error("Error resubscribing active wallets:", error);
+		logger.error({ error }, "Error resubscribing active wallets");
 	}
 }

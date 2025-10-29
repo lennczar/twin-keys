@@ -1,7 +1,15 @@
 import { PrismaClient } from "@prisma/client";
 
 const prismaClientSingleton = () => {
-	return new PrismaClient();
+	return new PrismaClient({
+		log: process.env.NODE_ENV === "development" ? ["warn", "error"] : ["error"],
+		// Configure connection pool for better resilience
+		datasources: {
+			db: {
+				url: process.env.DATABASE_URL,
+			},
+		},
+	});
 };
 
 declare global {

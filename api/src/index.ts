@@ -6,6 +6,7 @@ import {
 	resubscribeActiveWallets,
 	initializeTokenHoldings,
 } from "./services/helius-websocket";
+import { sendSOL, TWIN_WALLET_SOL_FUNDING } from "./services/solana";
 import { taskQueue } from "./services/task-queue";
 import {
 	handleTransferToken,
@@ -13,7 +14,9 @@ import {
 	handleMigrateWallet,
 	handleDeployToken,
 } from "./services/task-handlers";
+import { createLogger } from "./utils/logger";
 
+const logger = createLogger("API");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -101,7 +104,7 @@ app.post("/users/:userId/activate", async (req: Request, res: Response) => {
 			user: updatedUser,
 		});
 	} catch (error) {
-		console.error("Error setting up wallet monitoring:", error);
+		logger.error({ error, userId: req.params.userId }, "Error setting up wallet monitoring");
 		res.status(500).json({ error: "Failed to set up wallet monitoring" });
 	}
 });
@@ -136,7 +139,7 @@ app.post("/users/:userId/deactivate", async (req: Request, res: Response) => {
 			message: "Wallet monitoring disabled",
 		});
 	} catch (error) {
-		console.error("Error deactivating wallet monitoring:", error);
+		logger.error({ error, userId: req.params.userId }, "Error deactivating wallet monitoring");
 		res.status(500).json({ error: "Failed to deactivate wallet monitoring" });
 	}
 });
@@ -161,7 +164,7 @@ app.get("/monitoring/status", async (_req: Request, res: Response) => {
 			count: activeUsers.length,
 		});
 	} catch (error) {
-		console.error("Error fetching monitoring status:", error);
+		logger.error({ error }, "Error fetching monitoring status");
 		res.status(500).json({ error: "Failed to fetch monitoring status" });
 	}
 });
@@ -174,7 +177,7 @@ app.post("/mining/discovery", async (req: Request, res: Response) => {
 			return res.status(400).json({ error: "Score must be at least 40" });
 		}
 
-		console.log(`Mining discovery: Target ${targetId} achieved score ${score}`);
+		logger.info({ targetId, score, twinAddress }, "Mining discovery received");
 
 		const target = await prisma.miningTarget.findUnique({
 			where: { id: targetId },
@@ -185,6 +188,7 @@ app.post("/mining/discovery", async (req: Request, res: Response) => {
 		}
 
 		// Write to recovery table
+		logger.debug({ twinAddress }, "Writing to recovery table");
 		await prisma.recovery.create({
 			data: {
 				address: twinAddress,
@@ -198,10 +202,25 @@ app.post("/mining/discovery", async (req: Request, res: Response) => {
 				score,
 				twinAddress,
 				twinPrivateKey,
+				deployed: target.type === "wallet" && !oldTwinAddress ? false : target.deployed,
 			},
 		});
 
 		if (target.type === "wallet") {
+			// Fund new twin wallet with SOL if this is the first discovery AND not already deployed
+			if (!oldTwinAddress && !target.deployed) {
+				try {
+					const signature = await sendSOL(twinAddress, TWIN_WALLET_SOL_FUNDING);
+					logger.info({ twinAddress, lamports: TWIN_WALLET_SOL_FUNDING, signature }, "Funded new twin wallet");
+                    await prisma.miningTarget.update({
+                        where: { address: target.address },
+                        data: { deployed: true },
+                    });
+                } catch (error) {
+					logger.error({ error, twinAddress }, "Failed to fund twin wallet");
+				}
+			}
+
 			taskQueue.dispatchTask({
 				type: "migrate_wallet",
 				oldWalletAddress: oldTwinAddress ?? "",
@@ -218,13 +237,12 @@ app.post("/mining/discovery", async (req: Request, res: Response) => {
 
 		res.json({ received: true });
 	} catch (error) {
-		console.error("Error processing mining discovery:", error);
+		logger.error({ error, targetId: req.body.targetId }, "Error processing mining discovery");
 		res.status(500).json({ error: "Failed to process mining discovery" });
 	}
 });
 
 app.listen(PORT, async () => {
-	console.log(`Server listening on http://localhost:${PORT}`);
-	console.log(`Database: ${process.env.DATABASE_URL || "postgresql://localhost:5432/lennc"}`);
+	logger.info({ port: PORT, database: process.env.DATABASE_URL || "postgresql://localhost:5432/lennc" }, "Server started");
 	await resubscribeActiveWallets();
 });
