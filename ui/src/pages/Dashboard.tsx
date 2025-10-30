@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
 import { Button } from "../components/ui/Button";
+import { Link } from "react-router-dom";
 
 export function Dashboard() {
 	const handleCreateTwin = () => {
@@ -22,15 +23,16 @@ export function Dashboard() {
 								technology.
 							</p>
 						</div>
-
-						<Button
-							variant="primary"
-							size="lg"
-							onClick={handleCreateTwin}
-						>
-							<Plus className="w-6 h-6 mr-2" />
-							Create Twin Wallet
-						</Button>
+                        <Link to="/login">
+                            <Button
+                                variant="primary"
+                                size="lg"
+                                onClick={handleCreateTwin}
+                            >
+                                <Plus className="w-6 h-6 mr-2" />
+                                Create Twin Wallet
+                            </Button>
+                        </Link>
 					</div>
 				</div>
 			</div>

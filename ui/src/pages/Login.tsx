@@ -1,7 +1,11 @@
-import { KeyRound, Mail, Wallet } from "lucide-react";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { ArrowLeft, KeyRound, Mail } from "lucide-react";
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
+import { Modal } from "../components/ui/Modal";
+import { WalletButton } from "../components/wallet/WalletButton";
 import logo from "../assets/twin-keys-logo-blue.svg";
 
 type AuthMode = "signin" | "login";
@@ -9,37 +13,38 @@ type AuthMode = "signin" | "login";
 export function Login() {
 	const [mode, setMode] = useState<AuthMode>("signin");
 	const [email, setEmail] = useState("");
-	const [walletConnected, setWalletConnected] = useState(false);
+	const [showModal, setShowModal] = useState(false);
+	const { publicKey, connected } = useWallet();
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
 		
 		if (mode === "signin") {
 			// Sign In requires both email and wallet
-			if (!email || !walletConnected) {
+			if (!email || !connected) {
 				alert("Please provide both email and connect your wallet");
 				return;
 			}
-			console.log("Sign in attempt with:", { email, wallet: walletConnected });
+			console.log("Sign up attempt with:", { 
+				email, 
+				walletAddress: publicKey?.toString() 
+			});
+			// TODO: Send sign up request to API
+			setShowModal(true);
 		} else {
 			// Log In requires only wallet
-			if (!walletConnected) {
+			if (!connected) {
 				alert("Please connect your wallet");
 				return;
 			}
-			console.log("Log in attempt with wallet");
+			console.log("Log in attempt with wallet:", publicKey?.toString());
+			// TODO: Send login request to API
+			setShowModal(true);
 		}
 	};
 
-	const handleWalletConnect = () => {
-		// TODO: Integrate WalletConnect for Solana + Phantom
-		// Will require @solana/wallet-adapter-react and related packages
-		console.log("Wallet connect clicked");
-		setWalletConnected(true);
-	};
-
 	return (
-		<div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-base-200 to-base-100 p-4">
+		<div className="min-h-screen flex items-center justify-center bg-linear-to-br from-base-200 to-base-100 p-4">
 			<div className="w-full max-w-md">
 				<div className="text-center mb-8">
 					<div className="flex justify-center mb-4">
@@ -72,23 +77,12 @@ export function Login() {
 							)}
 
 							{/* Wallet Connect Button */}
-							{/* TODO: Integrate Solana wallet adapters:
-                                - @solana/wallet-adapter-react
-                                - @solana/wallet-adapter-wallets
-                                - @solana/wallet-adapter-base
-                                Configure for Solana mainnet and Phantom wallet
-                            */}
-							<Button
-								type="button"
-								variant="secondary"
-								fullWidth
-								size="lg"
-								onClick={handleWalletConnect}
-								className={walletConnected ? "bg-success text-success-content hover:bg-success/90" : ""}
-							>
-								<Wallet className="w-5 h-5 mr-2" />
-								{walletConnected ? "Wallet Connected" : "Connect Wallet"}
-							</Button>
+							<div className="flex flex-col gap-2">
+								<WalletButton
+									fullWidth
+									size="lg"
+								/>
+							</div>
 
 							{mode === "signin" && (
 								<Button
@@ -96,10 +90,10 @@ export function Login() {
 									variant="primary"
 									fullWidth
 									size="lg"
-									disabled={!walletConnected || !email}
+									disabled={!connected || !email}
 								>
 									<Mail className="w-5 h-5 mr-2" />
-									Sign Up
+									Join the waitlist
 								</Button>
 							)}
 
@@ -109,16 +103,29 @@ export function Login() {
 									variant="primary"
 									fullWidth
 									size="lg"
-									disabled={!walletConnected}
+									disabled={!connected}
 								>
 									<KeyRound className="w-5 h-5 mr-2" />
-									Log In
+									Join the waitlist
 								</Button>
 							)}
 						</form>
 
-						{/* Mode Switch */}
-						<div className="text-center mt-6">
+                        
+						<div className="mt-6 flex flex-row items-center justify-between gap-2">
+                            {/* Back Button */}
+                            <Link
+                                to="/"
+                            >
+                                <button
+                                    type="button"
+                                    className="text-sm flex flex-row items-center justify-center text-base-content/70 hover:text-primary transition-colors"
+                                >
+                                    <ArrowLeft className="w-5 h-5 mr-2" />
+                                    Back
+                                </button>
+                            </Link>
+						    {/* Mode Switch */}
 							<button
 								type="button"
 								onClick={() => setMode(mode === "signin" ? "login" : "signin")}
@@ -127,28 +134,23 @@ export function Login() {
 								{mode === "signin" ? "Log In instead" : "Sign Up instead"}
 							</button>
 						</div>
-
-						{/* <div className="text-center mt-6 text-sm text-base-content/70">
-							<p>
-								By continuing, you agree to our{" "}
-								<a
-									href="#"
-									className="link link-primary"
-								>
-									Terms of Service
-								</a>{" "}
-								and{" "}
-								<a
-									href="#"
-									className="link link-primary"
-								>
-									Privacy Policy
-								</a>
-							</p>
-						</div> */}
 					</div>
 				</div>
 			</div>
+
+			{/* Waiting List Modal */}
+			<Modal
+				isOpen={showModal}
+				onClose={() => setShowModal(false)}
+				title="We added you to the waitlist!"
+			>
+				<div className="space-y-4">
+					<p className="text-base-content/70">
+						Thank you for joining the waitlist! We'll reach out when Twin Keys launches.
+					</p>
+				</div>
+			</Modal>
 		</div>
 	);
+    
 }
