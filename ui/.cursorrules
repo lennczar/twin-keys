@@ -1,0 +1,68 @@
+# Twin Keys UI Development Guidelines
+
+## Project Structure
+
+- Follow the organized folder structure:
+  - `/src/components/` - Reusable React components
+    - `/layout/` - Layout components (Header, Footer, Layout)
+    - `/ui/` - Basic UI components (Button, Input, etc.)
+    - `/features/` - Feature-specific components
+  - `/src/pages/` - Page components (Home, Login, Dashboard)
+  - `/src/hooks/` - Custom React hooks
+  - `/src/styles/` - CSS and style utilities
+  - `/src/utils/` - Helper functions and utilities
+  - `/src/constants/` - Design tokens and configuration
+  - `/src/types/` - TypeScript type definitions
+
+## Code Style
+
+- Use TypeScript for all files
+- Follow Prettier configuration for formatting (format on save enabled)
+- Use functional components with React hooks
+- Keep files modular and focused (no very long files or functions)
+- Extract reusable logic into custom hooks
+
+## Component Guidelines
+
+- Reuse components whenever possible
+- Do not create duplicate Headers/Footers for different pages
+- Use DaisyUI components and classes as the foundation
+- Extend DaisyUI by creating new reusable components when needed
+- Use the custom "twinkeys" DaisyUI theme for styling
+
+## Design System
+
+- Use CSS custom properties for:
+  - Colors (institutional blue #305cde, white)
+  - Border radius (sharp: 0-4px)
+  - Font families (Sofia Sans, Tektur)
+- Primary button: filled blue background, white text
+- Secondary button: transparent with blue 1-2px border
+- Design aesthetic: trustworthy, institutional, sleek and modern with retro touches
+
+## Styling Approach
+
+- Prefer DaisyUI classes over custom CSS
+- Use Tailwind utility classes for layout and spacing
+- Use the custom DaisyUI theme variables for consistency
+- Avoid inline styles unless absolutely necessary
+- Make heavy use of irregular bento box / masonry grids
+
+## Tech Stack
+
+- Bun (runtime and package manager)
+- React 19 with TypeScript
+- Tailwind CSS 4 + DaisyUI 5
+- React Router for navigation
+- TanStack Query for data fetching
+- Lucide React for icons
+
+## Best Practices
+
+- No emojis in code or UI (unless explicitly requested)
+- Keep tone neutral and factual, not salesy
+- Write clean, maintainable code
+- Test components in the browser
+- Use semantic HTML
+- Ensure accessibility standards
+

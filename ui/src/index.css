@@ -1,0 +1,98 @@
+@import url("https://fonts.googleapis.com/css2?family=Sofia+Sans:ital,wght@0,1..1000;1,1..1000&family=Tektur:wght@400..900&display=swap");
+
+@import "tailwindcss";
+@plugin "daisyui";
+
+/* Custom Twin Keys Theme */
+@plugin "daisyui/theme" {
+	name: "twinkeys";
+	default: true;
+	prefersdark: false;
+	color-scheme: light;
+
+	/* Primary institutional blue #305cde converted to oklch */
+	--color-primary: oklch(51% 0.185 260);
+	--color-primary-content: oklch(100% 0 0);
+
+	/* Secondary - lighter blue for accents */
+	--color-secondary: oklch(65% 0.15 250);
+	--color-secondary-content: oklch(100% 0 0);
+
+	/* Accent - slightly different blue */
+	--color-accent: oklch(58% 0.17 255);
+	--color-accent-content: oklch(100% 0 0);
+
+	/* Neutral - dark grays for text and backgrounds */
+	--color-neutral: oklch(30% 0.02 260);
+	--color-neutral-content: oklch(95% 0 0);
+
+	/* Base colors - white and off-white backgrounds */
+	--color-base-100: oklch(100% 0 0);
+	--color-base-200: oklch(98% 0 0);
+	--color-base-300: oklch(95% 0 0);
+	--color-base-content: oklch(25% 0.02 260);
+
+	/* Info - blue tones */
+	--color-info: oklch(65% 0.15 240);
+	--color-info-content: oklch(100% 0 0);
+
+	/* Success - green */
+	--color-success: oklch(65% 0.15 150);
+	--color-success-content: oklch(100% 0 0);
+
+	/* Warning - orange/yellow */
+	--color-warning: oklch(75% 0.15 70);
+	--color-warning-content: oklch(25% 0.02 70);
+
+	/* Error - red */
+	--color-error: oklch(60% 0.2 25);
+	--color-error-content: oklch(100% 0 0);
+
+	/* Sharp border radius - 0 to 4px */
+	--radius-selector: 0.25rem;
+	--radius-field: 0.25rem;
+	--radius-box: 0.25rem;
+
+	/* Base sizes */
+	--size-selector: 0.25rem;
+	--size-field: 0.25rem;
+
+	/* Border size - slightly thicker for sharp look */
+	--border: 2px;
+
+	/* Effects - minimal */
+	--depth: 0;
+	--noise: 0;
+}
+
+@layer base {
+	:root {
+		font-family: "Sofia Sans", sans-serif;
+	}
+
+	body {
+		@apply min-h-screen bg-base-100 text-base-content;
+		margin: 0;
+		padding: 0;
+	}
+
+	h1,
+	h2,
+	h3,
+	h4,
+	h5,
+	h6 {
+		font-family: "Tektur", monospace;
+		font-weight: 600;
+	}
+}
+
+@layer utilities {
+	.font-display {
+		font-family: "Tektur", monospace;
+	}
+
+	.font-body {
+		font-family: "Sofia Sans", sans-serif;
+	}
+}
