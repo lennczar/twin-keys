@@ -2,21 +2,22 @@ import { ArrowRight, Eye, Lock, Shield, Wallet } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "../components/ui/Button";
+import Dither from "../components/ui/Dither";
 
 export function Home() {
-	const [activeTab, setActiveTab] = useState<"short" | "medium" | "long">("medium");
+	const [activeTab, setActiveTab] = useState<"short" | "medium" | "long">("short");
 
 	const content = {
 		short: {
-			title: "One Sentence",
+			title: "One",
 			text: "Twin-Keys creates and maintains realistic twin wallets that mirror real on-chain activity, allowing users to protect their assets while preserving credibility under pressure.",
 		},
 		medium: {
-			title: "Three Sentences",
+			title: "Three",
 			text: "Twin-Keys reduces the personal risk of holding digital assets by creating and maintaining a secondary wallet that mirrors the activity of a real wallet on the Solana blockchain. This twin wallet can be shown or used under pressure while real assets remain protected. The system observes token movements, reproduces transaction patterns, and maintains synchronized behavior without accessing private keys.",
 		},
 		long: {
-			title: "Five Sentences",
+			title: "Five",
 			text: "Twin-Keys is an anti-coercion protection system for self-custody wallets that reduces the personal risk of holding digital assets. It creates and maintains a secondary wallet that mirrors the activity of a real wallet on the Solana blockchain, which can be shown or used under pressure while real assets remain protected. The system monitors specified wallets in real-time, recording deposits, withdrawals, and transfers to reproduce accurate transaction patterns without accessing private keys. A visually similar twin wallet is generated to act as a safe counterpart, mimicking the name, tokens, and general balance composition using non-valuable tokens. This provides protection under coercion, lowers personal exposure when managing digital assets, and is useful for demonstrations, training, or product testing without real assets at risk.",
 		},
 	};
@@ -24,57 +25,90 @@ export function Home() {
 	return (
 		<div className="min-h-screen">
 			{/* Hero Section */}
-			<section className="min-h-screen flex items-center justify-center bg-gradient-to-b from-base-200 to-base-100 relative overflow-hidden">
-				{/* Placeholder for dither effect */}
-				<div className="absolute inset-0 opacity-10 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAxMCAwIEwgMCAwIDAgMTAiIGZpbGw9Im5vbmUiIHN0cm9rZT0iY3VycmVudENvbG9yIiBzdHJva2Utd2lkdGg9IjEiLz48L3BhdHRlcm4+PC9kZWZzPjxyZWN0IHdpZHRoPSIxMDAlIiBoZWlnaHQ9IjEwMCUiIGZpbGw9InVybCgjZ3JpZCkiLz48L3N2Zz4=')] pointer-events-none"></div>
+			<section className="min-h-screen flex items-center justify-center bg-linear-to-b from-base-200 to-base-100 relative overflow-hidden">
+				{/* Dither effect background */}
+				<div className="absolute inset-0">
+					<Dither
+						waveColor={[0, 0, 1]}
+						disableAnimation={false}
+						enableMouseInteraction={false}
+						mouseRadius={0.5}
+						colorNum={3}
+						waveAmplitude={0.1}
+						waveFrequency={0}
+						waveSpeed={0.025}
+						pixelSize={3}
+					/>
+				</div>
+
+				{/* Gradient overlay - transparent to white at bottom 10% */}
+				<div
+					className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-white pointer-events-none"
+					style={{ background: "linear-gradient(to bottom, transparent 90%, white 100%)" }}
+				></div>
+				<div
+					className="absolute inset-0 bg-linear-to-b from-transparent via-transparent to-white pointer-events-none"
+					style={{ background: "linear-gradient(to top, transparent 90%, white 100%)" }}
+				></div>
 
 				<div className="container mx-auto px-4 relative z-10 pt-24">
-					<div className="max-w-4xl mx-auto text-center mb-12">
-						<h1 className="text-6xl md:text-7xl font-display font-bold mb-6">Twin Keys</h1>
-						<p className="text-xl md:text-2xl text-base-content/70 mb-8">
-							Anti-coercion protection for self-custody wallets
-						</p>
-					</div>
-
-					{/* Tabbed Explanation Box */}
-					<div className="max-w-3xl mx-auto">
-						<div className="tabs tabs-box justify-center mb-6">
-							<button
-								className={`tab ${activeTab === "short" ? "tab-active" : ""}`}
-								onClick={() => setActiveTab("short")}
-							>
-								{content.short.title}
-							</button>
-							<button
-								className={`tab ${activeTab === "medium" ? "tab-active" : ""}`}
-								onClick={() => setActiveTab("medium")}
-							>
-								{content.medium.title}
-							</button>
-							<button
-								className={`tab ${activeTab === "long" ? "tab-active" : ""}`}
-								onClick={() => setActiveTab("long")}
-							>
-								{content.long.title}
-							</button>
-						</div>
-
-						<div className="card bg-base-100 shadow-2xl">
-							<div className="card-body">
-								<p className="text-lg leading-relaxed">{content[activeTab].text}</p>
+					<div className="w-full flex flex-col lg:flex-row gap-8 items-center mb-16">
+						<div className="w-full">
+							<div className="flex items-center gap-6 mb-6">
+								<h1 className="text-6xl md:text-7xl font-display font-bold mr-6">Twin Keys</h1>
+								<Link to="/login">
+									<Button
+										variant="secondary"
+										size="lg"
+									>
+										Get your twin
+										<ArrowRight className="w-5 h-5 ml-1" />
+									</Button>
+								</Link>
 							</div>
+							{/* <p className="text-xl md:text-2xl text-base-content/70 mb-6">
+								Anti-coercion protection for self-custody wallets
+							</p> */}
 						</div>
-
-						<div className="mt-8 flex justify-center">
-							<Link to="/login">
-								<Button
-									variant="primary"
-									size="lg"
+						<div className="w-full lg:flex-basis-1/2 flex items-center justify-center lg:justify-start">
+							<div className="card bg-base-200 text-base-content flex flex-col max-w-full min-w-xl mx-12">
+								<div
+									role="tablist"
+									className="tabs tabs-bordered mx-6 my-4"
 								>
-									Get your twin
-									<ArrowRight className="w-5 h-5 ml-2" />
-								</Button>
-							</Link>
+									<p className="pl-0 pr-2 py-1 rounded-md leading-none h-7 tab text-base-content">
+										Twin Keys in
+									</p>
+									<a
+										role="tab"
+										className={`tab px-4 py-1 rounded-md leading-none h-7 ${activeTab === "short" ? "tab-active bg-base-content/10" : ""}`}
+										onClick={() => setActiveTab("short")}
+									>
+										{content.short.title}
+									</a>
+									<a
+										role="tab"
+										className={`tab px-4 py-1 rounded-md leading-none h-7 ${activeTab === "medium" ? "tab-active bg-base-content/10" : ""}`}
+										onClick={() => setActiveTab("medium")}
+									>
+										{content.medium.title}
+									</a>
+									<a
+										role="tab"
+										className={`tab px-4 py-1 rounded-md leading-none h-7 ${activeTab === "long" ? "tab-active bg-base-content/10" : ""}`}
+										onClick={() => setActiveTab("long")}
+									>
+										{content.long.title}
+									</a>
+									<p className="pr-0 pl-2 py-1 rounded-md leading-none h-7 tab text-base-content">
+										{activeTab !== "short" ? "sentences" : "sentence"}
+									</p>
+								</div>
+
+								<div className="px-6 py-4">
+									<p>{content[activeTab].text}</p>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>

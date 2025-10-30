@@ -14,14 +14,14 @@ export function Header() {
 	return (
 		<header
 			className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-				isScrolled ? "bg-base-100 shadow-md" : "bg-transparent"
+				isScrolled ? "bg-base-100" : "bg-transparent"
 			}`}
 		>
 			<div className="navbar max-w-7xl mx-auto px-4">
 				<div className="navbar-start">
 					<Link
 						to="/"
-						className="btn btn-ghost text-xl font-display"
+						className="btn btn-ghost text-xl font-display font-normal"
 					>
 						<KeyRound className="w-6 h-6" />
 						Twin Keys
@@ -49,4 +49,3 @@ export function Header() {
 		</header>
 	);
 }
-

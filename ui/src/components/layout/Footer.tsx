@@ -16,7 +16,7 @@ export function Footer() {
 					<div className="col-span-1 md:col-span-2">
 						<Link
 							to="/"
-							className="flex items-center gap-2 font-display text-xl mb-4"
+							className="flex items-center gap-2 font-display text-xl font-normal mb-4"
 						>
 							<KeyRound className="w-6 h-6" />
 							Twin Keys
@@ -77,4 +77,3 @@ export function Footer() {
 		</footer>
 	);
 }
-

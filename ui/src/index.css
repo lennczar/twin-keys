@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Sofia+Sans:ital,wght@0,1..1000;1,1..1000&family=Tektur:wght@400..900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Tektur:wght@400..900&display=swap");
 
 @import "tailwindcss";
 @plugin "daisyui";
@@ -49,9 +49,9 @@
 	--color-error-content: oklch(100% 0 0);
 
 	/* Sharp border radius - 0 to 4px */
-	--radius-selector: 0.25rem;
-	--radius-field: 0.25rem;
-	--radius-box: 0.25rem;
+	--radius-selector: 0.5rem;
+	--radius-field: 0.5rem;
+	--radius-box: 0.5rem;
 
 	/* Base sizes */
 	--size-selector: 0.25rem;
@@ -67,7 +67,7 @@
 
 @layer base {
 	:root {
-		font-family: "Sofia Sans", sans-serif;
+		font-family: "Tektur", monospace;
 	}
 
 	body {
@@ -83,7 +83,7 @@
 	h5,
 	h6 {
 		font-family: "Tektur", monospace;
-		font-weight: 600;
+		font-weight: 400 !important;
 	}
 }
 
@@ -93,6 +93,6 @@
 	}
 
 	.font-body {
-		font-family: "Sofia Sans", sans-serif;
+		font-family: "Tektur", monospace;
 	}
 }

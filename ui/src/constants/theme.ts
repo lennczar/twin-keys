@@ -23,5 +23,5 @@ export const FONTS = {
 
 export const BUTTON_VARIANTS = {
 	primary: "btn-primary",
-	secondary: "btn-outline btn-primary",
+	secondary: "btn-outline btn-primary bg-base-100/70 hover:bg-primary hover:text-white",
 } as const;
