@@ -25,62 +25,17 @@ import { createLogger } from "../utils/logger";
 const logger = createLogger("SOLANA");
 const SOLANA_RPC_URL = process.env.SOLANA_RPC_URL || "https://api.mainnet-beta.solana.com";
 
-// Configure connection with aggressive rate limit handling
+// Configure connection with finalized commitment for consistency
 // Use "finalized" for stronger consistency guarantees (prevents TokenAccountNotFoundError due to propagation delays)
 // Trade-off: slightly slower (~2-3s more latency per operation)
 const connection = new Connection(SOLANA_RPC_URL, {
 	commitment: "finalized",
-	// Aggressive retry configuration for rate limits
-	fetchMiddleware: (url, options, fetch) => {
-		return retryWithExponentialBackoff(url, options, fetch);
-	},
+	// Note: fetchMiddleware disabled due to Bun compatibility issues
+	// Rate limiting is handled at application level instead
 });
 
-// Global exponential backoff wrapper for fetch calls
-async function retryWithExponentialBackoff(
-	url: string,
-	options: any,
-	fetch: typeof globalThis.fetch,
-	maxRetries: number = 8,
-	baseDelay: number = 500
-): Promise<Response> {
-	let lastError: Error | null = null;
-	
-	for (let attempt = 0; attempt <= maxRetries; attempt++) {
-		try {
-			const response = await fetch(url, options);
-			
-			// If we get a 429, retry with exponential backoff
-			if (response.status === 429) {
-				if (attempt === maxRetries) {
-					logger.error({ url, attempts: attempt + 1 }, "Max retries reached for 429 rate limit");
-					return response; // Return the 429 response so caller can handle it
-				}
-				
-				// Exponential backoff: 500ms, 1s, 2s, 4s, 8s, 16s, 32s, 64s
-				const delay = baseDelay * Math.pow(2, attempt);
-				logger.warn({ attempt: attempt + 1, delay, url }, `Server responded with 429 Too Many Requests. Retrying after ${delay}ms delay...`);
-				await new Promise(resolve => setTimeout(resolve, delay));
-				continue;
-			}
-			
-			// For other responses, return immediately
-			return response;
-		} catch (error) {
-			lastError = error as Error;
-			
-			// Network errors - retry with backoff
-			if (attempt < maxRetries) {
-				const delay = baseDelay * Math.pow(2, attempt);
-				logger.warn({ attempt: attempt + 1, delay, error: lastError.message }, `Network error. Retrying after ${delay}ms delay...`);
-				await new Promise(resolve => setTimeout(resolve, delay));
-				continue;
-			}
-		}
-	}
-	
-	throw lastError || new Error("Max retries exceeded");
-}
+// Note: Retry middleware disabled due to Bun compatibility issues with fetchMiddleware
+// The Solana connection library has its own built-in retry logic
 
 // SOL funding for twin wallets (~20 transactions worth)
 export const TWIN_WALLET_SOL_FUNDING = 20_000_000; // 0.02 SOL
@@ -237,7 +192,21 @@ export interface TokenMetadata {
  */
 async function fetchFromSolanaTokenList(tokenMint: string): Promise<{ name: string; symbol: string; logoURI: string } | null> {
 	try {
-		const response = await fetch("https://cdn.jsdelivr.net/gh/solana-labs/token-list@main/src/tokens/solana.tokenlist.json");
+		// Use native fetch with timeout to avoid hanging
+		const controller = new AbortController();
+		const timeout = setTimeout(() => controller.abort(), 5000); // 5 second timeout
+		
+		const response = await fetch(
+			"https://cdn.jsdelivr.net/gh/solana-labs/token-list@main/src/tokens/solana.tokenlist.json",
+			{ signal: controller.signal }
+		);
+		clearTimeout(timeout);
+		
+		if (!response.ok) {
+			logger.warn({ status: response.status }, "Solana Token List returned non-OK status");
+			return null;
+		}
+		
 		const data = await response.json() as { tokens: any[] };
 		const token = data.tokens.find((t: any) => t.address === tokenMint);
 		
@@ -245,8 +214,11 @@ async function fetchFromSolanaTokenList(tokenMint: string): Promise<{ name: stri
 			return { name: token.name, symbol: token.symbol, logoURI: token.logoURI };
 		}
 		return null;
-	} catch (error) {
-		logger.error({ error }, "Failed to fetch from Solana Token List");
+	} catch (error: any) {
+		// Only log non-abort errors
+		if (error.name !== 'AbortError') {
+			logger.debug({ error: error.message }, "Failed to fetch from Solana Token List");
+		}
 		return null;
 	}
 }

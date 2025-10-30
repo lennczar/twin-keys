@@ -1,12 +1,14 @@
 import express, { Request, Response } from "express";
+import cors from "cors";
 import prisma from "./db";
 import {
 	subscribeToWallet,
 	unsubscribeById,
 	resubscribeActiveWallets,
 	initializeTokenHoldings,
+	getWalletTokenHoldings,
 } from "./services/helius-websocket";
-import { sendSOL, TWIN_WALLET_SOL_FUNDING } from "./services/solana";
+import { sendSOL, TWIN_WALLET_SOL_FUNDING, getTokenMetadata } from "./services/solana";
 import { taskQueue } from "./services/task-queue";
 import {
 	handleTransferToken,
@@ -20,12 +22,49 @@ const logger = createLogger("API");
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Enable CORS for frontend
+app.use(cors({
+	origin: process.env.FRONTEND_URL || "http://localhost:3001",
+	credentials: true,
+}));
+
 app.use(express.json({ limit: "1mb" }));
 
-taskQueue.on("process:transfer_token", handleTransferToken);
-taskQueue.on("process:migrate_token", handleMigrateToken);
-taskQueue.on("process:migrate_wallet", handleMigrateWallet);
-taskQueue.on("process:deploy_token", handleDeployToken);
+taskQueue.on("process:transfer_token", async (task, callback) => {
+	try {
+		await handleTransferToken(task);
+		callback();
+	} catch (error) {
+		callback(error as Error);
+	}
+});
+
+taskQueue.on("process:migrate_token", async (task, callback) => {
+	try {
+		await handleMigrateToken(task);
+		callback();
+	} catch (error) {
+		callback(error as Error);
+	}
+});
+
+taskQueue.on("process:migrate_wallet", async (task, callback) => {
+	try {
+		await handleMigrateWallet(task);
+		callback();
+	} catch (error) {
+		callback(error as Error);
+	}
+});
+
+taskQueue.on("process:deploy_token", async (task, callback) => {
+	try {
+		await handleDeployToken(task);
+		callback();
+	} catch (error) {
+		callback(error as Error);
+	}
+});
 
 app.get("/ping", (_req: Request, res: Response) => {
 	res.json({ message: "pong" });
@@ -166,6 +205,77 @@ app.get("/monitoring/status", async (_req: Request, res: Response) => {
 	} catch (error) {
 		logger.error({ error }, "Error fetching monitoring status");
 		res.status(500).json({ error: "Failed to fetch monitoring status" });
+	}
+});
+
+// Get mining target by address (wallet or token mint)
+app.get("/mining/targets/real/:address", async (req: Request, res: Response) => {
+	try {
+		const { address } = req.params;
+
+		const target = await prisma.miningTarget.findUnique({
+			where: { address },
+		});
+
+		if (!target) {
+			return res.status(404).json({ error: "Mining target not found" });
+		}
+
+		res.json(target);
+	} catch (error) {
+		logger.error({ error, address: req.params.address }, "Error fetching mining target");
+		res.status(500).json({ error: "Failed to fetch mining target" });
+	}
+});
+
+// Get mining target by address (wallet or token mint)
+app.get("/mining/targets/twin/:address", async (req: Request, res: Response) => {
+	try {
+		const { address } = req.params;
+
+		const target = await prisma.miningTarget.findFirst({
+			where: { twinAddress: address },
+		});
+
+		if (!target) {
+			return res.status(404).json({ error: "Mining target not found" });
+		}
+
+		res.json(target);
+	} catch (error) {
+		logger.error({ error, address: req.params.address }, "Error fetching mining target");
+		res.status(500).json({ error: "Failed to fetch mining target" });
+	}
+});
+
+// Get token holdings for a wallet from Solana on-chain
+app.get("/tokenholdings/:wallet", async (req: Request, res: Response) => {
+	try {
+		const { wallet } = req.params;
+		const holdings = await getWalletTokenHoldings(wallet);
+		res.json(holdings);
+	} catch (error) {
+		logger.error({ error, wallet: req.params.wallet }, "Error fetching token holdings");
+		res.status(500).json({ error: "Failed to fetch token holdings" });
+	}
+});
+
+// Get token metadata from Metaplex
+app.get("/tokenmetadata/:token", async (req: Request, res: Response) => {
+	try {
+		const { token } = req.params;
+		const metadata = await getTokenMetadata(token);
+
+		res.json({
+			name: metadata.name,
+			symbol: metadata.symbol,
+			uri: metadata.uri,
+			decimals: metadata.decimals,
+			totalSupply: metadata.totalSupply.toString(),
+		});
+	} catch (error) {
+		logger.error({ error, token: req.params.token }, "Error fetching token metadata");
+		res.status(500).json({ error: "Failed to fetch token metadata" });
 	}
 });
 

@@ -124,6 +124,25 @@ export async function unsubscribeById(subscriptionId: number): Promise<void> {
 	logger.info({ subscriptionId }, "Unsubscribed");
 }
 
+export async function getWalletTokenHoldings(walletAddress: string) {
+	const publicKey = new PublicKey(walletAddress);
+	const tokenAccounts = await helius.connection.getParsedTokenAccountsByOwner(publicKey, {
+		programId: new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA"),
+	});
+
+	return tokenAccounts.value.map((account) => {
+		const tokenAmount = account.account.data.parsed.info.tokenAmount;
+		const mint = account.account.data.parsed.info.mint;
+
+		return {
+			mint,
+			amount: tokenAmount.amount,
+			decimals: tokenAmount.decimals,
+			uiAmount: tokenAmount.uiAmount,
+		};
+	});
+}
+
 export async function initializeTokenHoldings(walletAddress: string): Promise<void> {
 	try {
 		const publicKey = new PublicKey(walletAddress);

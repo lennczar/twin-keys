@@ -49,7 +49,25 @@ class TaskQueue extends EventEmitter {
 		
 		return pRetry(
 			async () => {
-				this.emit(`process:${task.type}`, task);
+				// Create a promise that waits for the handler to complete
+				return new Promise<void>((resolve, reject) => {
+					const timeout = setTimeout(() => {
+						reject(new Error(`Task ${task.type} timed out after 60 seconds`));
+					}, 60000);
+
+					// Emit and wait for handler to signal completion
+					const handler = (error?: Error) => {
+						clearTimeout(timeout);
+						if (error) {
+							reject(error);
+						} else {
+							resolve();
+						}
+					};
+
+					// Emit with callback
+					this.emit(`process:${task.type}`, task, handler);
+				});
 			},
 			{
 				retries: 8,

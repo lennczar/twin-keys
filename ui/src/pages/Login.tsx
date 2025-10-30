@@ -1,45 +1,82 @@
 import { useWallet } from "@solana/wallet-adapter-react";
 import { ArrowLeft, KeyRound, Mail } from "lucide-react";
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
-import { Modal } from "../components/ui/Modal";
 import { WalletButton } from "../components/wallet/WalletButton";
 import logo from "../assets/twin-keys-logo-blue.svg";
+import { createUser, getUsers } from "../utils/api";
 
-type AuthMode = "signin" | "login";
+type AuthMode = "signup" | "login";
 
 export function Login() {
-	const [mode, setMode] = useState<AuthMode>("signin");
+	const [mode, setMode] = useState<AuthMode>("signup");
 	const [email, setEmail] = useState("");
-	const [showModal, setShowModal] = useState(false);
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 	const { publicKey, connected } = useWallet();
+	const navigate = useNavigate();
 
-	const handleSubmit = (e: React.FormEvent) => {
+	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+		setError(null);
+		setIsLoading(true);
 		
-		if (mode === "signin") {
-			// Sign In requires both email and wallet
-			if (!email || !connected) {
-				alert("Please provide both email and connect your wallet");
-				return;
+		try {
+			if (mode === "signup") {
+				// Sign Up requires both email and wallet
+				if (!email || !connected || !publicKey) {
+					setError("Please provide both email and connect your wallet");
+					setIsLoading(false);
+					return;
+				}
+
+				const walletAddress = publicKey.toString();
+				console.log("Sign up attempt with:", { email, walletAddress });
+
+				// Create user account
+				const user = await createUser(email, walletAddress);
+				
+				// Store userId in localStorage
+				localStorage.setItem("userId", user.id);
+				localStorage.setItem("userWallet", walletAddress);
+
+				// Redirect to dashboard
+				navigate("/dashboard");
+			} else {
+				// Log In requires only wallet
+				if (!connected || !publicKey) {
+					setError("Please connect your wallet");
+					setIsLoading(false);
+					return;
+				}
+
+				const walletAddress = publicKey.toString();
+				console.log("Log in attempt with wallet:", walletAddress);
+
+				// Find user by wallet
+				const users = await getUsers();
+				const user = users.find((u: any) => u.wallet === walletAddress);
+
+				if (!user) {
+					setError("No account found for this wallet. Please sign up first.");
+					setIsLoading(false);
+					return;
+				}
+
+				// Store userId in localStorage
+				localStorage.setItem("userId", user.id);
+				localStorage.setItem("userWallet", walletAddress);
+
+				// Redirect to dashboard
+				navigate("/dashboard");
 			}
-			console.log("Sign up attempt with:", { 
-				email, 
-				walletAddress: publicKey?.toString() 
-			});
-			// TODO: Send sign up request to API
-			setShowModal(true);
-		} else {
-			// Log In requires only wallet
-			if (!connected) {
-				alert("Please connect your wallet");
-				return;
-			}
-			console.log("Log in attempt with wallet:", publicKey?.toString());
-			// TODO: Send login request to API
-			setShowModal(true);
+		} catch (err) {
+			console.error("Auth error:", err);
+			setError(err instanceof Error ? err.message : "An error occurred");
+		} finally {
+			setIsLoading(false);
 		}
 	};
 
@@ -52,7 +89,7 @@ export function Login() {
 					</div>
 					<h1 className="text-4xl font-display font-bold mb-2">Welcome to Twin Keys</h1>
 					<p className="text-base-content/70">
-						{mode === "signin" 
+						{mode === "signup" 
 							? "Create an account with email and wallet" 
 							: "Access your dashboard with wallet"}
 					</p>
@@ -64,7 +101,13 @@ export function Login() {
 							onSubmit={handleSubmit}
 							className="space-y-6"
 						>
-							{mode === "signin" && (
+							{error && (
+								<div className="alert alert-error">
+									<span>{error}</span>
+								</div>
+							)}
+
+							{mode === "signup" && (
 								<Input
 									type="email"
 									label="Email Address"
@@ -84,16 +127,17 @@ export function Login() {
 								/>
 							</div>
 
-							{mode === "signin" && (
+							{mode === "signup" && (
 								<Button
 									type="submit"
 									variant="primary"
 									fullWidth
 									size="lg"
 									disabled={!connected || !email}
+									loading={isLoading}
 								>
 									<Mail className="w-5 h-5 mr-2" />
-									Join the waitlist
+									Sign Up
 								</Button>
 							)}
 
@@ -104,9 +148,10 @@ export function Login() {
 									fullWidth
 									size="lg"
 									disabled={!connected}
+									loading={isLoading}
 								>
 									<KeyRound className="w-5 h-5 mr-2" />
-									Join the waitlist
+									Log In
 								</Button>
 							)}
 						</form>
@@ -128,28 +173,15 @@ export function Login() {
 						    {/* Mode Switch */}
 							<button
 								type="button"
-								onClick={() => setMode(mode === "signin" ? "login" : "signin")}
+								onClick={() => setMode(mode === "signup" ? "login" : "signup")}
 								className="text-sm text-base-content/70 hover:text-primary transition-colors"
 							>
-								{mode === "signin" ? "Log In instead" : "Sign Up instead"}
+								{mode === "signup" ? "Log In instead" : "Sign Up instead"}
 							</button>
 						</div>
 					</div>
 				</div>
 			</div>
-
-			{/* Waiting List Modal */}
-			<Modal
-				isOpen={showModal}
-				onClose={() => setShowModal(false)}
-				title="We added you to the waitlist!"
-			>
-				<div className="space-y-4">
-					<p className="text-base-content/70">
-						Thank you for joining the waitlist! We'll reach out when Twin Keys launches.
-					</p>
-				</div>
-			</Modal>
 		</div>
 	);
     
