@@ -1,4 +1,4 @@
-import { ArrowRight, Eye, Lock, Shield, Wallet } from "lucide-react";
+import { AlertTriangle, ArrowRight, Bell, Copy, Eye, Lock, Wallet } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "../components/ui/Button";
@@ -9,16 +9,16 @@ export function Home() {
 
 	const content = {
 		short: {
-			title: "One",
-			text: "Twin-Keys creates and maintains realistic twin wallets that mirror real on-chain activity, allowing users to protect their assets while preserving credibility under pressure.",
+			title: "Essence",
+			text: "A decoy wallet filled with fake tokens that look identical to real ones.\n\nWhen threatened, send worthless tokens instead of your real assets.",
 		},
 		medium: {
-			title: "Three",
-			text: "Twin-Keys reduces the personal risk of holding digital assets by creating and maintaining a secondary wallet that mirrors the activity of a real wallet on the Solana blockchain. This twin wallet can be shown or used under pressure while real assets remain protected. The system observes token movements, reproduces transaction patterns, and maintains synchronized behavior without accessing private keys.",
+			title: "Short",
+			text: "Twin-Keys creates a decoy wallet with visually identical fake tokens.\n\nThe twin mirrors your real wallet's activity in real-time.\n\nUnder coercion, send the worthless tokens to protect your real assets.",
 		},
 		long: {
-			title: "Five",
-			text: "Twin-Keys is an anti-coercion protection system for self-custody wallets that reduces the personal risk of holding digital assets. It creates and maintains a secondary wallet that mirrors the activity of a real wallet on the Solana blockchain, which can be shown or used under pressure while real assets remain protected. The system monitors specified wallets in real-time, recording deposits, withdrawals, and transfers to reproduce accurate transaction patterns without accessing private keys. A visually similar twin wallet is generated to act as a safe counterpart, mimicking the name, tokens, and general balance composition using non-valuable tokens. This provides protection under coercion, lowers personal exposure when managing digital assets, and is useful for demonstrations, training, or product testing without real assets at risk.",
+			title: "Detail",
+			text: "Twin-Keys generates a decoy wallet that mirrors your real wallet on Solana.\n\nFake tokens are visually indistinguishable from legitimate ones.\n\nActivity syncs in real-time without accessing your private keys.\n\nSend worthless tokens when forced, protecting your actual holdings.\n\nTrigger emergency alerts when the twin is used—notify contacts or authorities.",
 		},
 	};
 
@@ -52,9 +52,9 @@ export function Home() {
 				></div>
 
 				<div className="container mx-auto px-4 relative z-10 pt-24">
-					<div className="w-full flex flex-col lg:flex-row gap-8 items-center mb-16">
+					<div className="w-full flex flex-row gap-12 items-center mb-16 justify-around">
 						<div className="w-full">
-							<div className="flex items-center gap-6 mb-6">
+							<div className="flex items-center gap-6 mb-6 min-w-[600px]">
 								<h1 className="text-6xl md:text-7xl font-display font-bold mr-6">Twin Keys</h1>
 								<Link to="/login">
 									<Button
@@ -71,7 +71,7 @@ export function Home() {
 							</p> */}
 						</div>
 						<div className="w-full lg:flex-basis-1/2 flex items-center justify-center lg:justify-start">
-							<div className="card bg-base-200 text-base-content flex flex-col max-w-full min-w-xl mx-12">
+							<div className="card bg-base-200 text-base-content flex flex-col max-w-full min-w-xl">
 								<div
 									role="tablist"
 									className="tabs tabs-bordered mx-6 my-4"
@@ -100,9 +100,6 @@ export function Home() {
 									>
 										{content.long.title}
 									</a>
-									<p className="pr-0 pl-2 py-1 rounded-md leading-none h-7 tab text-base-content">
-										{activeTab !== "short" ? "sentences" : "sentence"}
-									</p>
 								</div>
 
 								<div className="px-6 py-4">
@@ -120,73 +117,77 @@ export function Home() {
 					<h2 className="text-4xl md:text-5xl font-display font-bold text-center mb-16">Core Features</h2>
 
 					<div className="grid grid-cols-1 md:grid-cols-6 gap-6 max-w-7xl mx-auto">
-						{/* Wallet Monitoring - Large */}
+						{/* Real-time Mirroring - Large */}
 						<div className="md:col-span-4 md:row-span-2 card bg-base-200 hover:shadow-xl transition-shadow">
 							<div className="card-body">
 								<div className="w-12 h-12 rounded bg-primary/10 flex items-center justify-center mb-4">
 									<Eye className="w-6 h-6 text-primary" />
 								</div>
-								<h3 className="card-title font-display text-2xl">Wallet Monitoring</h3>
+								<h3 className="card-title font-display text-2xl">Real-Time Activity Mirroring</h3>
 								<p className="text-base-content/80 leading-relaxed">
-									Twin-Keys observes token movements on specified wallets and records deposits,
-									withdrawals, and transfers in real time. This continuous monitoring allows the
-									system to reproduce accurate transaction patterns without requiring access to
-									private keys, ensuring your actual wallet security remains intact while building a
-									credible twin.
+									Twin-Keys monitors your main wallet and automatically replicates all token movements
+									to your decoy wallet in real-time. Deposits, withdrawals, and transfers are mirrored
+									instantly, creating a convincing transaction history. The synchronization happens
+									without ever accessing your private keys, keeping your actual wallet completely
+									secure.
 								</p>
 							</div>
 						</div>
 
-						{/* Twin Generation - Medium */}
+						{/* Identical Fake Tokens - Medium */}
 						<div className="md:col-span-2 md:row-span-1 card bg-base-200 hover:shadow-xl transition-shadow">
 							<div className="card-body">
 								<div className="w-12 h-12 rounded bg-primary/10 flex items-center justify-center mb-4">
-									<Wallet className="w-6 h-6 text-primary" />
+									<Copy className="w-6 h-6 text-primary" />
 								</div>
-								<h3 className="card-title font-display">Twin Wallet Generation</h3>
+								<h3 className="card-title font-display">Visually Identical Tokens</h3>
 								<p className="text-base-content/80">
-									Creates a visually similar wallet that mimics the name, tokens, and balance
-									composition of your original wallet using non-valuable tokens.
+									Fake tokens in your twin wallet are virtually indistinguishable from real ones. Same
+									names, logos, and balances—but completely worthless.
 								</p>
 							</div>
 						</div>
 
-						{/* Behavior Mirroring - Medium */}
+						{/* Emergency Alerts - Medium */}
 						<div className="md:col-span-2 md:row-span-1 card bg-base-200 hover:shadow-xl transition-shadow">
 							<div className="card-body">
 								<div className="w-12 h-12 rounded bg-primary/10 flex items-center justify-center mb-4">
-									<Shield className="w-6 h-6 text-primary" />
+									<Bell className="w-6 h-6 text-primary" />
 								</div>
-								<h3 className="card-title font-display">Behavior Mirroring</h3>
+								<h3 className="card-title font-display">Emergency Alerts</h3>
 								<p className="text-base-content/80">
-									The twin reproduces the visible activity of the real wallet. Transaction history and
-									token lists remain synchronized for credible observation.
+									Configure custom triggers when your twin wallet is used. Send your location to
+									authorities or notify emergency contacts automatically.
 								</p>
 							</div>
 						</div>
 
-						{/* Anti-coercion Protection - Wide */}
+						{/* Decoy Protection - Wide */}
 						<div className="md:col-span-3 md:row-span-1 card bg-primary text-primary-content hover:shadow-xl transition-shadow">
 							<div className="card-body">
 								<div className="w-12 h-12 rounded bg-white/20 flex items-center justify-center mb-4">
 									<Lock className="w-6 h-6" />
 								</div>
-								<h3 className="card-title font-display text-xl">Protection Under Coercion</h3>
+								<h3 className="card-title font-display text-xl">Send Fake Tokens Under Threat</h3>
 								<p className="opacity-90">
-									Provides a believable wallet alternative that can be shown if forced to reveal
-									funds. Your real assets remain protected while maintaining credibility in
-									high-pressure situations.
+									Add the twin wallet to your Web3 wallet app. When forced to send tokens under
+									coercion, send the worthless fakes instead. Your real assets stay protected while
+									maintaining complete credibility.
 								</p>
 							</div>
 						</div>
 
-						{/* Privacy - Wide */}
+						{/* Web3 Integration - Wide */}
 						<div className="md:col-span-3 md:row-span-1 card bg-base-200 hover:shadow-xl transition-shadow">
 							<div className="card-body">
-								<h3 className="card-title font-display text-xl">Privacy and Peace of Mind</h3>
+								<div className="w-12 h-12 rounded bg-primary/10 flex items-center justify-center mb-4">
+									<Wallet className="w-6 h-6 text-primary" />
+								</div>
+								<h3 className="card-title font-display text-xl">Works With Your Wallet</h3>
 								<p className="text-base-content/80">
-									Lowers personal exposure when managing digital assets. Useful for demonstrations,
-									training, or product testing without putting real assets at risk.
+									Import your twin wallet into Phantom, Solflare, or any Solana wallet. It appears and
+									functions like a normal wallet—complete with transaction history and realistic
+									balances.
 								</p>
 							</div>
 						</div>

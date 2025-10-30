@@ -31,14 +31,6 @@ export function Footer() {
 						<ul className="space-y-2">
 							<li>
 								<Link
-									to="/"
-									className="link link-hover text-base-content/70"
-								>
-									Features
-								</Link>
-							</li>
-							<li>
-								<Link
 									to="/dashboard"
 									className="link link-hover text-base-content/70"
 								>
@@ -48,14 +40,14 @@ export function Footer() {
 						</ul>
 					</div>
 					<div>
-						<h3 className="font-display font-semibold mb-4">Legal</h3>
+						<h3 className="font-display font-semibold mb-4">Resources</h3>
 						<ul className="space-y-2">
 							<li>
 								<a
 									href="#"
 									className="link link-hover text-base-content/70"
 								>
-									Privacy Policy
+									Pitch Deck
 								</a>
 							</li>
 							<li>
@@ -63,7 +55,7 @@ export function Footer() {
 									href="#"
 									className="link link-hover text-base-content/70"
 								>
-									Terms of Service
+									Colloseum Pitch
 								</a>
 							</li>
 						</ul>

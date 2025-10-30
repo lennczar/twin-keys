@@ -3,19 +3,38 @@ import { useState } from "react";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
 
+type AuthMode = "signin" | "login";
+
 export function Login() {
+	const [mode, setMode] = useState<AuthMode>("signin");
 	const [email, setEmail] = useState("");
+	const [walletConnected, setWalletConnected] = useState(false);
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault();
-		// TODO: Implement login logic
-		console.log("Login attempt with:", email);
+		
+		if (mode === "signin") {
+			// Sign In requires both email and wallet
+			if (!email || !walletConnected) {
+				alert("Please provide both email and connect your wallet");
+				return;
+			}
+			console.log("Sign in attempt with:", { email, wallet: walletConnected });
+		} else {
+			// Log In requires only wallet
+			if (!walletConnected) {
+				alert("Please connect your wallet");
+				return;
+			}
+			console.log("Log in attempt with wallet");
+		}
 	};
 
 	const handleWalletConnect = () => {
 		// TODO: Integrate WalletConnect for Solana + Phantom
 		// Will require @solana/wallet-adapter-react and related packages
 		console.log("Wallet connect clicked");
+		setWalletConnected(true);
 	};
 
 	return (
@@ -28,38 +47,32 @@ export function Login() {
 						</div>
 					</div>
 					<h1 className="text-4xl font-display font-bold mb-2">Welcome to Twin Keys</h1>
-					<p className="text-base-content/70">Sign in to access your dashboard</p>
+					<p className="text-base-content/70">
+						{mode === "signin" 
+							? "Create an account with email and wallet" 
+							: "Access your dashboard with wallet"}
+					</p>
 				</div>
 
-				<div className="card bg-base-100 shadow-2xl">
+				<div className="card">
 					<div className="card-body">
 						<form
 							onSubmit={handleSubmit}
 							className="space-y-6"
 						>
-							<Input
-								type="email"
-								label="Email Address"
-								placeholder="your@email.com"
-								value={email}
-								onChange={(e) => setEmail(e.target.value)}
-								required
-								fullWidth
-							/>
+							{mode === "signin" && (
+								<Input
+									type="email"
+									label="Email Address"
+									placeholder="your@email.com"
+									value={email}
+									onChange={(e) => setEmail(e.target.value)}
+									required
+									fullWidth
+								/>
+							)}
 
-							<Button
-								type="submit"
-								variant="primary"
-								fullWidth
-								size="lg"
-							>
-								<Mail className="w-5 h-5 mr-2" />
-								Continue with Email
-							</Button>
-
-							<div className="divider">OR</div>
-
-							{/* Placeholder for Wallet Connect */}
+							{/* Wallet Connect Button */}
 							{/* TODO: Integrate Solana wallet adapters:
                                 - @solana/wallet-adapter-react
                                 - @solana/wallet-adapter-wallets
@@ -72,13 +85,51 @@ export function Login() {
 								fullWidth
 								size="lg"
 								onClick={handleWalletConnect}
+								className={walletConnected ? "bg-success text-success-content hover:bg-success/90" : ""}
 							>
 								<Wallet className="w-5 h-5 mr-2" />
-								Connect Wallet
+								{walletConnected ? "Wallet Connected" : "Connect Wallet"}
 							</Button>
+
+							{mode === "signin" && (
+								<Button
+									type="submit"
+									variant="primary"
+									fullWidth
+									size="lg"
+									disabled={!walletConnected || !email}
+								>
+									<Mail className="w-5 h-5 mr-2" />
+									Sign Up
+								</Button>
+							)}
+
+							{mode === "login" && (
+								<Button
+									type="submit"
+									variant="primary"
+									fullWidth
+									size="lg"
+									disabled={!walletConnected}
+								>
+									<KeyRound className="w-5 h-5 mr-2" />
+									Log In
+								</Button>
+							)}
 						</form>
 
-						<div className="text-center mt-6 text-sm text-base-content/70">
+						{/* Mode Switch */}
+						<div className="text-center mt-6">
+							<button
+								type="button"
+								onClick={() => setMode(mode === "signin" ? "login" : "signin")}
+								className="text-sm text-base-content/70 hover:text-primary transition-colors"
+							>
+								{mode === "signin" ? "Log In instead" : "Sign Up instead"}
+							</button>
+						</div>
+
+						{/* <div className="text-center mt-6 text-sm text-base-content/70">
 							<p>
 								By continuing, you agree to our{" "}
 								<a
@@ -95,7 +146,7 @@ export function Login() {
 									Privacy Policy
 								</a>
 							</p>
-						</div>
+						</div> */}
 					</div>
 				</div>
 			</div>
