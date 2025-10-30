@@ -2,6 +2,7 @@ import { KeyRound, Mail, Wallet } from "lucide-react";
 import { useState } from "react";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
+import logo from "../assets/twin-keys-logo-blue.svg";
 
 type AuthMode = "signin" | "login";
 
@@ -42,9 +43,7 @@ export function Login() {
 			<div className="w-full max-w-md">
 				<div className="text-center mb-8">
 					<div className="flex justify-center mb-4">
-						<div className="w-16 h-16 rounded-lg bg-primary flex items-center justify-center">
-							<KeyRound className="w-8 h-8 text-primary-content" />
-						</div>
+						<img src={logo} alt="Twin Keys" className="w-16 h-16" />
 					</div>
 					<h1 className="text-4xl font-display font-bold mb-2">Welcome to Twin Keys</h1>
 					<p className="text-base-content/70">

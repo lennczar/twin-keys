@@ -1,6 +1,6 @@
-import { KeyRound } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
 import { useScrollPosition } from "../../hooks/useScrollPosition";
+import logo from "../../assets/twin-keys-logo-blue.svg";
 
 export function Header() {
 	const isScrolled = useScrollPosition(50);
@@ -23,7 +23,7 @@ export function Header() {
 						to="/"
 						className="btn btn-ghost text-xl font-display font-normal"
 					>
-						<KeyRound className="w-6 h-6" />
+						<img src={logo} alt="Twin Keys" className="w-7 h-7" />
 						Twin Keys
 					</Link>
 				</div>

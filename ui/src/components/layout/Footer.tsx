@@ -1,5 +1,5 @@
-import { KeyRound } from "lucide-react";
 import { Link, useLocation } from "react-router-dom";
+import logo from "../../assets/twin-keys-logo-blue.svg";
 
 export function Footer() {
 	const location = useLocation();
@@ -18,7 +18,7 @@ export function Footer() {
 							to="/"
 							className="flex items-center gap-2 font-display text-xl font-normal mb-4"
 						>
-							<KeyRound className="w-6 h-6" />
+							<img src={logo} alt="Twin Keys" className="w-7 h-7" />
 							Twin Keys
 						</Link>
 						<p className="text-base-content/70 max-w-md">
